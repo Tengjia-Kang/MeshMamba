@@ -1,5 +1,5 @@
 # Mesh Mamba: A Unified State Space Model for Saliency Prediction in Non-Textured and Textured Meshes (CVPR 2025)
-This is the source code for the paper "[***](https:)".
+This is the source code for the paper "[Mesh Mamba: A Unified State Space Model for Saliency Prediction in Non-Textured and Textured Meshes](https://arxiv.org/abs/2504.01466)".
 
 [Kaiwei Zhang](https://github.com/kaviezhang), [Dandan Zhu](), [Xiongkuo Min](https://scholar.google.com/citations?user=91sjuWIAAAAJ&hl=en&oi=ao), and [Guangtao Zhai](https://scholar.google.com/citations?user=E6zbSYgAAAAJ&hl=en&oi=ao)
 
