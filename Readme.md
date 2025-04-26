@@ -21,8 +21,8 @@ Then run get_neighbor_ringn.py to prepare the data.
 This project is based on Mamba ([paper](https://arxiv.org/abs/2312.00752), [code](https://github.com/state-spaces/mamba)), Vision Mamba ([paper](https://icml.cc/virtual/2024/poster/33768), [code](https://github.com/hustvl/Vim)), Mamba3D ([paper](https://dl.acm.org/doi/abs/10.1145/3664647.3681173), [code](https://github.com/xhanxu/Mamba3D)). Thanks for their wonderful works.
 
 ## 📚 Citation
-If you use TexturedMeshSaliency, please consider citing:
-```
+If you use MeshMamba, please consider citing:
+```bibtex
 @article{zhang2025mesh,
   title={Mesh Mamba: A Unified State Space Model for Saliency Prediction in Non-Textured and Textured Meshes},
   author={Zhang, Kaiwei and Zhu, Dandan and Min, Xiongkuo and Zhai, Guangtao},
