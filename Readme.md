@@ -18,7 +18,7 @@ This is the source code for the paper "[Mesh Mamba: A Unified State Space Model 
 Then run get_neighbor_ringn.py to prepare the data.
 
 ## ❤️ Acknowledgement
-This project is based on Mamba ([paper](https://arxiv.org/abs/2312.00752), [code](https://github.com/state-spaces/mamba)), Vision Mamba ([paper](https://icml.cc/virtual/2024/poster/33768), [code](https://github.com/hustvl/Vim)), Mamba3D([paper](https://dl.acm.org/doi/abs/10.1145/3664647.3681173), [code](https://github.com/xhanxu/Mamba3D)). Thanks for their wonderful works.
+This project is based on Mamba ([paper](https://arxiv.org/abs/2312.00752), [code](https://github.com/state-spaces/mamba)), Vision Mamba ([paper](https://icml.cc/virtual/2024/poster/33768), [code](https://github.com/hustvl/Vim)), Mamba3D ([paper](https://dl.acm.org/doi/abs/10.1145/3664647.3681173), [code](https://github.com/xhanxu/Mamba3D)). Thanks for their wonderful works.
 
 ## 📚 Citation
 If you use TexturedMeshSaliency, please consider citing:
