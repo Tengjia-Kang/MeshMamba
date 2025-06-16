@@ -1,0 +1,150 @@
+absl-py==2.1.0
+addict==2.4.0
+aiohappyeyeballs==2.4.3
+aiohttp==3.10.10
+aiosignal==1.3.1
+async-timeout==4.0.3
+attrs==24.2.0
+Automat==24.8.1
+beautifulsoup4==4.12.3
+blinker==1.8.2
+Brotli @ file:///croot/brotli-split_1714483155106/work
+buildtools==1.0.6
+cachetools==5.5.0
+causal-conv1d==1.1.1
+certifi @ file:///croot/certifi_1725551672989/work/certifi
+chamfer==2.0.0
+charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+click==8.1.7
+colorspacious==1.1.2
+constantly==23.10.4
+contourpy==1.1.1
+cycler==0.12.1
+dash==2.18.1
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-table==5.0.0
+dill==0.3.9
+docopt==0.6.2
+easydict==1.10
+einops==0.8.0
+filelock==3.16.1
+Flask==3.0.3
+fonttools==4.54.1
+frozenlist==1.4.1
+fsspec==2024.9.0
+furl==2.1.3
+fvcore==0.1.5.post20221221
+gdown==5.2.0
+google-auth==2.35.0
+google-auth-oauthlib==1.0.0
+greenlet==3.1.1
+grpcio==1.67.0
+h5py==3.11.0
+huggingface-hub==0.26.0
+hyperlink==21.0.0
+idna @ file:///croot/idna_1714398848350/work
+importlib_metadata==8.5.0
+importlib_resources==6.4.5
+incremental==24.7.2
+iopath==0.1.10
+itsdangerous==2.2.0
+Jinja2==3.1.3
+joblib==1.4.2
+kiwisolver==1.4.7
+KNN-CUDA @ https://github.com/unlimblue/KNN_CUDA/releases/download/0.2/KNN_CUDA-0.2-py3-none-any.whl#sha256=809a43da2eed950c65ba15e355e8cdbf975b6a948dced1f02414f26aba586cd0
+loguru==0.7.2
+mamba-ssm==1.1.1
+Markdown==3.7
+markdown-it-py==3.0.0
+MarkupSafe==2.1.5
+matplotlib==3.7.5
+mdurl==0.1.2
+meshio==5.3.5
+mkl-fft @ file:///croot/mkl_fft_1695058164594/work
+mkl-random @ file:///croot/mkl_random_1695059800811/work
+mkl-service==2.4.0
+mmcv==2.0.0
+mmengine==0.10.5
+mpmath==1.3.0
+multidict==6.1.0
+nest-asyncio==1.6.0
+networkit==11.0
+networkx==3.0
+nibabel==5.2.1
+ninja==1.11.1.1
+numpy @ file:///work/mkl/numpy_and_numpy_base_1682953417311/work
+oauthlib==3.2.2
+onnx==1.17.0
+opencv-python==4.10.0.84
+openTSNE==1.0.1
+orderedmultidict==1.0.1
+packaging==24.1
+pandas==2.0.3
+pillow @ file:///croot/pillow_1721059439630/work
+platformdirs==4.3.6
+plotly==5.24.1
+pointnet2_ops @ git+https://github.com/erikwijmans/Pointnet2_PyTorch.git@b5ceb6d9ca0467ea34beb81023f96ee82228f626#subdirectory=pointnet2_ops_lib
+portalocker==2.10.1
+propcache==0.2.0
+protobuf==5.28.2
+psutil==6.1.0
+pyasn1==0.6.1
+pyasn1_modules==0.4.1
+Pygments==2.18.0
+pyparsing==3.1.4
+PySocks @ file:///tmp/build/80754af9/pysocks_1605305779399/work
+python-dateutil==2.9.0.post0
+pytorch3d @ git+https://github.com/facebookresearch/pytorch3d.git@58566963d620cbe067ec53eae62ca262aecfbe27
+pytz==2024.2
+PyYAML==6.0.2
+redo==3.0.0
+regex==2024.9.11
+requests @ file:///croot/requests_1721410876868/work
+requests-oauthlib==2.0.0
+retrying==1.3.4
+rich==13.9.2
+rsa==4.9
+safetensors==0.4.5
+scikit-learn==1.3.2
+scipy==1.10.1
+simplejson==3.19.3
+six==1.16.0
+soupsieve==2.6
+SQLAlchemy==2.0.36
+sympy==1.13.1
+tabulate==0.9.0
+tenacity==9.0.0
+tensorboard==2.14.0
+tensorboard-data-server==0.7.2
+tensorboardX==2.6.2.2
+termcolor==2.4.0
+thop==0.1.1.post2209072238
+threadpoolctl==3.5.0
+timm==0.4.12
+tokenizers==0.20.1
+tomli==2.0.2
+torch==1.13.1
+torch-flops==0.3.6
+torch_geometric==2.5.3
+torch_scatter==2.1.2
+torch_sparse==0.6.18
+torchaudio==0.13.1
+torchvision==0.14.1
+tqdm==4.66.5
+transformers==4.45.2
+trimesh==4.5.0
+triton==2.1.0
+Twisted==24.7.0
+typing_extensions @ file:///croot/typing_extensions_1715268824938/work
+tzdata==2024.2
+urllib3 @ file:///croot/urllib3_1727769808118/work
+vedo==2024.5.2
+vtk==9.3.1
+websocket-client==1.8.0
+Werkzeug==3.0.4
+yacs==0.1.8
+yapf==0.40.2
+yarl==1.15.2
+zipp==3.20.2
+zope.interface==7.1.0
