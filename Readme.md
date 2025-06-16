@@ -18,10 +18,10 @@ This is the source code for the paper "[Mesh Mamba: A Unified State Space Model 
 Then run get_neighbor_ringn.py to prepare the data.
 
 ## 💫 Start training
-Environment: Python 3.8.18 and requirement.txt
-Change the base_root in get_neighbor_ringn.py to prepare the data.
-Change the data_root in config/MeshSaliency.yaml to your dataset path.
-Run the train_mesh_Mamba.py
+- Environment: Python 3.8.18 and requirement.txt
+- Change the base_root in get_neighbor_ringn.py to prepare the data.
+- Change the data_root in config/MeshSaliency.yaml to your dataset path.
+- Run the train_mesh_Mamba.py
 
 ## ❤️ Acknowledgement
 This project is based on Mamba ([paper](https://arxiv.org/abs/2312.00752), [code](https://github.com/state-spaces/mamba)), Vision Mamba ([paper](https://icml.cc/virtual/2024/poster/33768), [code](https://github.com/hustvl/Vim)), Mamba3D ([paper](https://dl.acm.org/doi/abs/10.1145/3664647.3681173), [code](https://github.com/xhanxu/Mamba3D)). Thanks for their wonderful works.
