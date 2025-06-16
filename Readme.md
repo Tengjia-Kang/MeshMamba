@@ -9,8 +9,8 @@ This is the source code for the paper "[Mesh Mamba: A Unified State Space Model 
 <hr />
 
 ## 📋 TODO
-- [ ] Release the training and evaluation code
-- [ ] Release the pretrained weights
+- [x] Release the training and evaluation code
+- [x] Release the pretrained weights
 - [x] Release the dataset.
 
 ## 🎒 Data preparation
