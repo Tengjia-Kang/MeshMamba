@@ -14,8 +14,14 @@ This is the source code for the paper "[Mesh Mamba: A Unified State Space Model 
 - [x] Release the dataset.
 
 ## 🎒 Data preparation
-[Dataset](https://drive.google.com/drive/folders/1he9DBx4uRoDg-Fx_2Ec769o4JNc8fqIS?usp=sharing)
+- [Dataset](https://drive.google.com/drive/folders/1he9DBx4uRoDg-Fx_2Ec769o4JNc8fqIS?usp=sharing)
 Then run get_neighbor_ringn.py to prepare the data.
+- [Pretrained Weigths](https://github.com/kaviezhang/MeshMamba/blob/main/ckpt_root/FullFeatures_on_tex_sal.pkl):
+```python
+        state_dict = torch.load('ckpt_root/***.pkl')
+        new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+        model.load_state_dict(new_state_dict)
+```
 
 ## 💫 Start training
 - Environment: Python 3.8.18 and requirement.txt
