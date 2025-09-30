@@ -1,0 +1,36 @@
+# Manifold40分类任务配置
+
+# 模型配置
+mamba:
+  trans_dim: 384              # 特征维度
+  depth: 4                    # 网络深度
+  drop_path_rate: 0.1         # DropPath比率
+  cls_dim: 40                 # 类别数量
+  num_heads: 6                # 注意力头数量
+  group_size: 8               # 每组大小
+  num_group: 128              # 组数量
+  encoder_dims: 384           # 编码器维度
+  input_channel: 15           # 输入通道数
+  center_local_k: 8           # 中心点局部邻居数量
+  bimamba_type: 'v2'          # Mamba类型
+  ordering: 'random'          # 排序方式
+  label_smooth: 0.1           # 标签平滑
+
+# 训练配置
+train:
+  batch_size: 32              # 批次大小
+  max_epoch: 100              # 最大训练轮次
+  lr: 0.001                   # 学习率
+  weight_decay: 0.0005        # 权重衰减
+  momentum: 0.9               # 动量
+  optimizer: 'adam'           # 优化器类型: sgd, adam, adamw
+  scheduler: 'cos'            # 学习率调度器类型: multistep, cos, step
+  milestones: [50, 75]        # 多步学习率衰减的里程碑
+  save_steps: 10              # 模型保存间隔
+  ckpt_root: 'ckpt_root/manifold40_classification'  # 检查点保存路径
+
+# 数据集配置
+dataset:
+  root_dir: '/mnt/newdisk/ktj/Manifold40/'  # 数据集根目录
+  num_workers: 4              # 数据加载线程数
+  pin_memory: true            # 是否使用固定内存

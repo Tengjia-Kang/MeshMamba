@@ -40,7 +40,7 @@ class Logger:
 
 
 def train_model(model, criterion, optimizer, scheduler, cfg):
-    best_acc = np.Inf
+    best_acc = np.inf
     best_map = 0.0
     best_model_wts = copy.deepcopy(model.state_dict())
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     # Training Parameters
     SHUFFLE = False
 
-    with open("config/MeshSaliency.yaml", 'r') as f:
+    with open("config/CLS.yaml", 'r') as f:
         cfg = yaml.load(f, Loader=yaml.loader.SafeLoader)
     # criterion
     criterion = nn.L1Loss()

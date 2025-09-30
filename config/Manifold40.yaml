@@ -1,0 +1,96 @@
+# Manifold40 分类任务配置文件
+cuda_devices: '1'
+
+# Network hyper-parameters
+batch_size: 4
+max_epoch: 150
+lr: 0.001
+seed: 0
+momentum: 0.9
+weight_decay: 0.0005
+optimizer: 'adamw' # sgd/adamw/adam
+scheduler: 'cos' # step/cos/multistep
+milestones: [30, 60, 90]
+gamma: 0.1
+retrieval_on: true   # enable evaluating retrieval performance during training
+save_steps: 50
+
+# Model configuration
+curve_descriptor:
+  num_kernel: 64
+graph_conv:
+  num_kernel: 64
+structural_descriptor:
+  num_kernel: 64
+  sigma: 0.2
+mesh_convolution:
+  aggregation_method: 'Aggregation'  # Concat/Max/Average/Aggregation/
+num_kernel: 8
+ConvSurface:
+  num_samples_per_neighbor: 4
+  rs_mode: 'Weighted' # Uniform/Weighted
+  num_kernel: 16
+MeshBlock:
+  blocks: [3, 4, 4]
+pool_rate: 2
+
+# 数据集配置
+dataset:
+  data_root: /mnt/newdisk/ktj/Manifold40  # 数据集根目录
+  part: train  # 数据集部分（train/test）
+  max_faces: 500  # 最大面数限制，用于统一处理不同大小的网格
+  augment: True  # 是否使用数据增强
+  random_rotate: True  # 是否随机旋转
+  jitter_scale: 0.05  # 顶点抖动比例
+  normalize: True  # 是否归一化网格到单位球
+  features: ['center', 'normal', 'corner']  # 使用的特征类型
+  # 可选特征: 
+  # - center: 面中心点坐标
+  # - normal: 面法线
+  # - corner: 面顶点坐标
+
+# 模型配置
+mamba:
+  trans_dim: 384              # 特征维度
+  depth: 4                    # 网络深度
+  drop_path_rate: 0.1         # DropPath比率
+  cls_dim: 40                 # 类别数量
+  num_heads: 6                # 注意力头数量
+  group_size: 8               # 每组大小
+  num_group: 128              # 组数量
+  encoder_dims: 384           # 编码器维度
+  input_channel: 256          # 输入通道数（与特征适配层输出匹配）
+  center_local_k: 8           # 中心点局部邻居数量
+  bimamba_type: 'v2'          # Mamba类型
+  ordering: 'random'          # 排序方式
+  label_smooth: 0.1           # 标签平滑
+
+# 训练参数
+training:
+  batch_size: 1  # 批次大小
+  max_epoch: 100  # 最大训练轮数
+  lr: 0.001  # 初始学习率
+  weight_decay: 0.0001  # 权重衰减
+  momentum: 0.9  # SGD动量参数
+  optimizer: adam  # 优化器类型 (sgd/adam/adamw)
+  scheduler: cos  # 学习率调度器类型 (multistep/cos/steplr)
+  milestones: [50, 80]  # 学习率衰减里程碑，用于multistep调度器
+  step_size: 50  # 学习率衰减步长，用于steplr调度器
+  gamma: 0.1  # 学习率衰减系数
+  label_smoothing: 0.1  # 标签平滑系数
+  num_workers: 4  # 数据加载器工作进程数
+  pin_memory: True  # 是否使用固定内存加速
+  num_experiments: 1  # 实验重复次数
+
+# 检查点和日志配置
+checkpoint:
+  ckpt_root: ckpt_root/manifold40_classification  # 检查点保存根目录
+  save_freq: 10  # 检查点保存频率（轮数）
+  resume: False  # 是否从检查点恢复训练
+  resume_path: ''  # 恢复训练的检查点路径
+
+# 测试参数
+test:
+  test_batch_size: 32  # 测试批次大小
+  evaluate: False  # 是否仅进行评估
+  eval_checkpoint: ''  # 用于评估的检查点路径
