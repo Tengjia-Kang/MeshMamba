@@ -81,10 +81,10 @@ def train_model(model, criterion, optimizer, scheduler, cfg, data_loader, data_s
                 targets = collated_dict['target'].cuda()
                 
                 # Manifold40数据集没有这些特征，设为None或默认值
-                # neighbor_index = torch.zeros_like(faces) if 'neighbors' not in collated_dict else collated_dict['neighbors'].cuda()
-                # ring_1 = torch.zeros_like(faces) if 'ring_1' not in collated_dict else collated_dict['ring_1'].cuda()
-                # ring_2 = torch.zeros_like(faces) if 'ring_2' not in collated_dict else collated_dict['ring_2'].cuda()
-                # ring_3 = torch.zeros_like(faces) if 'ring_3' not in collated_dict else collated_dict['ring_3'].cuda()
+                neighbor_index = torch.zeros_like(faces) if 'neighbors' not in collated_dict else collated_dict['neighbors'].cuda()
+                ring_1 = torch.zeros_like(faces) if 'ring_1' not in collated_dict else collated_dict['ring_1'].cuda()
+                ring_2 = torch.zeros_like(faces) if 'ring_2' not in collated_dict else collated_dict['ring_2'].cuda()
+                ring_3 = torch.zeros_like(faces) if 'ring_3' not in collated_dict else collated_dict['ring_3'].cuda()
                 
                 # 纹理相关特征也设为默认值
                 # texture = torch.zeros(1, 3, 256, 256).cuda()
