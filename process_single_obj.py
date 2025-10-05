@@ -238,7 +238,6 @@ def main():
     parser.add_argument('--output', '-o', help='输出NPZ文件的路径')
     parser.add_argument('--device', default='cpu', choices=['cpu', 'cuda'], help='计算设备')
     parser.add_argument('--no-normalize', action='store_true', help='不对网格进行归一化')
-    
     args = parser.parse_args()
     
     # 如果指定了cuda但不可用，则回退到cpu

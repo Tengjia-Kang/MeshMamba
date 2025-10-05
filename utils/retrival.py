@@ -66,3 +66,4 @@ def map_from_dist(dist, lbl_a, lbl_b):
         else:
             res.append(0)
     return np.mean(res)
+
