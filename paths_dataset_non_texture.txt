@@ -1,0 +1,3 @@
+./dataset/MeshFile/non_texture/Apple_Red_v1_L3/Apple_v01_l3.obj
+./dataset/MeshFile/non_texture/Aquarium_Deep_Sea_Diver_v1_L1/Aquarium_Deep_Sea_Diver_v1_L1.obj
+./dataset/MeshFile/non_texture/Aquarium_Skull_v1_L1/Aquarium_Skull_v1_L1.obj
