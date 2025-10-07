@@ -3,10 +3,6 @@ import yaml
 import os
 from models.MambaMesh_Modified import MambaMeshForClassification
 
-# 设置中文字体支持
-import matplotlib.pyplot as plt
-plt.rcParams["font.family"] = ["SimHei", "WenQuanYi Micro Hei", "Heiti TC"]
-
 def load_config(config_path):
     with open(config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)

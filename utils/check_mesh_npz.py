@@ -1,7 +1,7 @@
 import numpy as np
 
 # 加载NPZ文件
-data = np.load('./sample_output.npz')
+data = np.load('/home/ktj/Projects/MeshMamba/text_model.obj.npz')
 
 # 打印文件包含的键
 print('文件包含的键:', list(data.keys()))

@@ -7,7 +7,7 @@ import math
 import torchvision.models as models
 
 
-class FaceTex_Extractor(nn.Module):
+class  FaceTex_Extractor(nn.Module):
     def __init__(self):
         super(FaceTex_Extractor, self).__init__()
         # backbone = models.resnet34(models.ResNet34_Weights)

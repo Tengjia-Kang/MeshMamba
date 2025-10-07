@@ -1,1 +1,2 @@
 from .MeshRotateDataset import MeshDataset
+from .MeshClassificationDataset import MeshClassificationDataset
