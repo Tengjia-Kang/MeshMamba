@@ -1,7 +1,7 @@
 import numpy as np
 
 # 加载NPZ文件
-data = np.load('/home/ktj/Projects/MeshMamba/text_model.obj.npz')
+data = np.load('/mnt/newdisk/ktj/Mesh/dataset_preprocessed/Manifold40/bench/test/bench_0174.npz')
 
 # 打印文件包含的键
 print('文件包含的键:', list(data.keys()))
@@ -9,6 +9,7 @@ print('文件包含的键:', list(data.keys()))
 # 打印基本信息
 print('面数:', data['faces'].shape[0])
 print('顶点数:', data['verts'].shape[0])
+print('标签:', data['label'])
 print('1-Ring形状:', data['ring_1'].shape)
 print('2-Ring形状:', data['ring_2'].shape)
 print('3-Ring形状:', data['ring_3'].shape)

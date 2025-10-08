@@ -272,7 +272,7 @@ class Sine(nn.Module):
     def forward(self, x):
         return torch.sin(self.w0 * x)
 
- 
+
 # Local Geometry Aggregation
 class K_Norm(nn.Module):
     def __init__(self, out_dim, k_group_size, alpha, beta):
@@ -602,7 +602,7 @@ class MambaMesh(nn.Module):
         self.cls_dim = config['cls_dim']
         self.num_heads = config['num_heads']
 
-        self.group_size = config['group_size']   
+        self.group_size = config['group_size']
         self.num_group = config['num_group']
         self.encoder_dims = config['encoder_dims']
         self.input_channel = config['input_channel']
@@ -646,30 +646,15 @@ class MambaMesh(nn.Module):
         self.norm = nn.LayerNorm(self.trans_dim)
 
         self.FPUP = FeaturePropagation(self.trans_dim, [64, 64, 64])
-
-        # saliency map head
-        # self.fineture = nn.Sequential(
-        #     nn.Conv1d(64, 32, 1),
-        #     nn.BatchNorm1d(32),
-        #     nn.ReLU(),
-        #     nn.Conv1d(32, 32, 1),
-        #     nn.BatchNorm1d(32),
-        #     nn.ReLU(),
-        #     nn.Conv1d(32, 1, 1),
-        #     nn.Sigmoid(),
-        # )
-
-        # classification head
         self.fineture = nn.Sequential(
-            nn.Conv1d(self.trans_dim, 256, 1),
-            nn.BatchNorm1d(256),
+            nn.Conv1d(64, 32, 1),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
-            nn.Conv1d(256, 128, 1),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(32, 32, 1),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(),
-            nn.Linear(128, config['cls_dim'])
+            nn.Conv1d(32, 1, 1),
+            nn.Sigmoid(),
         )
 
         self.label_smooth = config['label_smooth']
@@ -754,8 +739,3 @@ class MambaMesh(nn.Module):
         ret = self.fineture(concat_f)
         ret = ret.squeeze()
         return ret
-
-
-
-
-        

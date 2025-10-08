@@ -14,6 +14,17 @@ from torch_geometric.utils import to_trimesh
 from trimesh.graph import face_adjacency
 from utils.file_utils import fpath
 from utils.mesh_utils import pytorch3D_mesh, is_mesh_valid, normalize_mesh
+from pytorch3d.io import load_objs_as_meshes
+import torchvision.transforms as transforms
+from pytorch3d.io import load_objs_as_meshes
+from pytorch3d.structures import Meshes
+from pytorch3d.io import load_obj
+# import open3d as o3d
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import PIL.Image as Image
+import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 def pytorch3D_mesh(f_path, device):
     """
@@ -34,82 +45,86 @@ def pytorch3D_mesh(f_path, device):
     v_normals = mesh.verts_normals_packed()
     f_normals = mesh.faces_normals_packed()
 
-    # trimesh load uv and texture
-    # transform = transforms.ToTensor()
-    # transform = transforms.Compose([
-    #     transforms.ToTensor(),
-    #     transforms.Normalize([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-    # ])
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(1024),
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    vertices, faces_idx, aux = load_obj(f_path)
-    grid = 2.0 * aux.verts_uvs[faces_idx.textures_idx] - 1
-    grid = grid.unsqueeze(0)
-    img = aux.texture_images['material_0'].numpy()
-    img_tensor = transform(img).unsqueeze(0).flip(2)
-
-    # Grid Sample face colors
-    face_colors = F.grid_sample(img_tensor, grid=grid, mode='nearest', align_corners=True)
-    face_colors = face_colors.squeeze().permute(1, 2, 0)
-
-    # Grid Sample Texture Patches
-    grid_size = 9
-    x_min = torch.min(grid[:, :, :, 0], dim=2)[0]
-    x_max = torch.max(grid[:, :, :, 0], dim=2)[0]
-    y_min = torch.min(grid[:, :, :, 1], dim=2)[0]
-    y_max = torch.max(grid[:, :, :, 1], dim=2)[0]
-    step_x = (x_max - x_min) / (grid_size - 1)
-    step_y = (y_max - y_min) / (grid_size - 1)
-    indices = torch.linspace(0, grid_size - 1, grid_size)
-
-    # get min/max step and min_edge
-    aspect_ratio = 'keep_aspect_ratio'  # 'keep_aspect_ratio' or 'resize_to_square'
-    if aspect_ratio == 'keep_aspect_ratio':
-        min_max = torch.cat([x_max - x_min, y_max - y_min], dim=0).min(0)[1]
-        x_min[0, min_max == 0] = x_min[0, min_max == 0] - 0.5 * ((y_max - y_min) - (x_max - x_min))[0, min_max == 0]
-        y_min[0, min_max == 1] = y_min[0, min_max == 1] + 0.5 * ((y_max - y_min) - (x_max - x_min))[0, min_max == 1]
-        step_x[0, min_max == 0] = step_y[0, min_max == 0]
-        step_y[0, min_max == 1] = step_x[0, min_max == 1]
-
-    xx_linspaces = x_min[:, :, None] + indices * step_x[:, :, None]
-    yy_linspaces = y_min[:, :, None] + indices * step_y[:, :, None]
-    grid_x = xx_linspaces.unsqueeze(3).expand(-1, -1, -1, grid_size)
-    grid_y = yy_linspaces.unsqueeze(2).expand(-1, -1, grid_size, -1)
-    grid_mean = torch.stack([grid_x, grid_y], dim=-1)
-    # at 1
-    face_textures1 = F.grid_sample(img_tensor.expand(32868, -1, -1, -1),
-                                   grid=grid_mean.squeeze(), mode='nearest', align_corners=True)
-    # at 2
-    img_tensor_ = img_tensor.unsqueeze(2)
-    grid_mean_ = torch.cat([grid_mean, torch.zeros_like(grid_mean)[:,:,:,:,0].unsqueeze(-1)], -1)
-    face_textures2 = F.grid_sample(img_tensor_, grid=grid_mean_, mode='nearest', align_corners=True)
-    face_textures2 = face_textures2.squeeze().transpose(0, 1)
-
-    face_textures = face_textures1
-    # face_colors = face_textures[:, :, 0, 0]
-    # face_colors = (face_colors - torch.min(face_colors)) / (torch.max(face_colors) - torch.min(face_colors))
-    # face_colors = face_textures.reshape((face_textures.shape[0], face_textures.shape[1], -1))
-    # face_colors = torch.mean(face_colors, 2)
-    # import trimesh
-    # mesh_new = trimesh.Trimesh(vertices=vertices, faces=faces, face_colors=face_colors)
-    # mesh_new.visual.face_colors = face_colors
-    # mesh_new.export("aaa.obj")
-
-    # save texture and uv
-    texture = img_tensor.squeeze()
-    uv_grid = grid_mean_.squeeze()
-    # print(texture.shape)
-    return (mesh, faces, verts, edges, v_normals, f_normals,
-            face_colors, face_textures, texture, uv_grid)
+    return mesh, faces, verts, edges, v_normals, f_normals
 
 
+def find_neighbor(faces, faces_contain_this_vertex, vf1, vf2, except_face):
+    for i in (faces_contain_this_vertex[vf1] & faces_contain_this_vertex[vf2]):
+        if i != except_face:
+            face = faces[i].tolist()
+            face.remove(vf1)
+            face.remove(vf2)
+            return i
+
+    return except_face
+
+def get_manifold40_label(path):
+    """
+    Get Manifold40 label from path
+
+    Args:
+        path: obj file path
+
+    Returns:
+        label: Manifold40 label
+    """
+    model_net_labels = [
+        'bathtub', 'bed', 'chair', 'desk', 'dresser', 'monitor', 'night_stand', 'sofa', 'table', 'toilet',
+        'wardrobe', 'bookshelf', 'laptop', 'door', 'lamp', 'person', 'curtain', 'piano', 'airplane', 'cup',
+        'cone', 'tent', 'radio', 'stool', 'range_hood', 'car', 'sink', 'guitar', 'tv_stand', 'stairs',
+        'mantel', 'bench', 'plant', 'bottle', 'bowl', 'flower_pot', 'keyboard', 'vase', 'xbox', 'glass_box'
+    ]
+    model_net_labels.sort()
+    target = path.split('/')[-3]
+    label = model_net_labels.index(target)
+     
+    return label
+
+def fpath(dir_name):
+    """
+    Return all obj file in a directory
+
+    Args:
+        dir_name: root path to obj files
+
+    Returns:
+        f_path: list of obj files paths
+    """
+    f_path = []
+    for root, dirs, files in os.walk(dir_name, topdown=False):
+        for f in files:
+            if f.endswith('.obj'):
+                if os.path.exists(os.path.join(root, f)):
+                    f_path.append(os.path.join(root, f))
+    return f_path
+
+
+def normalize_mesh(verts, faces):
+    """
+    Normalize and center input mesh to fit in a sphere of radius 1 centered at (0,0,0)
+
+    Args:
+        mesh: pytorch3D mesh
+
+    Returns:
+        mesh, faces, verts, edges, v_normals, f_normals: normalized pytorch3D mesh and other mesh
+        information
+    """
+    verts = verts - verts.mean(0)
+    scale = max(verts.abs().max(0)[0])
+    verts = verts / scale
+    mesh = Meshes(verts=[verts], faces=[faces])
+    faces = mesh.faces_packed().squeeze(0)
+    verts = mesh.verts_packed().squeeze(0)
+    edges = mesh.edges_packed().squeeze(0)
+    v_normals = mesh.verts_normals_packed().squeeze(0)
+    f_normals = mesh.faces_normals_packed().squeeze(0)
+
+    return mesh, faces, verts, edges, v_normals, f_normals
 
 
 def main():
-    device = torch.device('cuda:0')
+    device = torch.device('cpu')
     data_root = "/mnt/newdisk/ktj/Mesh/Manifold40/"
     output_root = '/mnt/newdisk/ktj/Mesh/dataset_preprocessed/Manifold40/'
     max_faces = 500
@@ -240,7 +255,7 @@ def main():
             faces_neighbor_3rd_ring = np.array(faces_neighbor_3rd_ring)
             assert faces_neighbor_3rd_ring.shape == (max_faces, 12)
 
-
+            # get corners
             corners = verts[faces.long()]
             # 每个面在1st Ring中连接到3个其他面
             assert corners.shape == (max_faces, 3, 3)
@@ -249,10 +264,11 @@ def main():
             assert centers.shape == (max_faces, 3)
 
             corners = corners.reshape(-1, 9)
+            
             assert f_normals.shape == (max_faces, 3)
 
-            faces_feature = np.concatenate([centers, corners, f_normals], axis=1)
-            assert faces_feature.shape == (max_faces, 15)
+            # faces_feature = np.concatenate([centers, corners, f_normals], axis=1)
+            # assert faces_feature.shape == (max_faces, 15)
 
             # 计算相对于数据根目录的相对路径
             rel_path = os.path.relpath(path, data_root)
@@ -262,6 +278,13 @@ def main():
             output_dir = os.path.dirname(output_path)
             os.makedirs(output_dir, exist_ok=True)
             
+            label = get_manifold40_label(path)
+
+            max_ver = 252
+            verts = np.pad(verts, ((0, max_ver - verts.shape[0]), (0, 0)), mode='constant')
+            # verts = torch.from_numpy(verts)
+
+
             # 保存NPZ文件
             np.savez(output_path,
                     verts=verts,
@@ -273,7 +296,8 @@ def main():
                     centers=centers,
                     ring_1=faces_neighbor_1st_ring,
                     ring_2=faces_neighbor_2nd_ring,
-                    ring_3=faces_neighbor_3rd_ring)
+                    ring_3=faces_neighbor_3rd_ring,
+                    label = label)
             
             print(f'已成功处理: {path}')
             print(f'输出文件: {output_path}')

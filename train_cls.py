@@ -9,19 +9,19 @@ import torch.utils.data as data
 import torch.backends.cudnn as cudnn
 import math
 import numpy as np
-from data.Manifold40Dataset import Manifold40Dataset
-from models import *
-from utils.retrival import append_feature, calculate_map
+from data.MeshClassificationDataset import MeshClassificationDataset
+# from models import *
+# from utils.retrival import append_feature, calculate_map
 from utils.loss_function import *
 import torch.nn.init as init
 import yaml
 import datetime
 import sys
-import time
+# import time
 import copy
-from models.MambaMesh_Modified import MambaMeshForClassification
-
-os.environ["CUDA_LAUNCH_BLOCKING"] = "0"
+from models.MambaMesh import MambaMesh
+# from models.MambaMesh_Modified import MambaMesh
+from tqdm import tqdm
 
 class Logger:
     def __init__(self, filename):
@@ -70,15 +70,15 @@ def train_model(model, criterion, optimizer, scheduler, cfg, data_loader, data_s
 
             running_loss = 0.0
             running_corrects = 0
-
-            for i, collated_dict in enumerate(data_loader[phrase]):
+            # 使用tqdm添加进度条
+            for collated_dict in tqdm(data_loader[phrase], desc=f'{phrase} Epoch {epoch}', unit='batch'):
                 # 获取数据
                 faces = collated_dict['faces'].cuda()
                 verts = collated_dict['verts'].cuda()
                 centers = collated_dict['centers'].permute(0, 2, 1).cuda()
                 normals = collated_dict['normals'].permute(0, 2, 1).cuda()
                 corners = collated_dict['corners'].permute(0, 2, 1).cuda()
-                targets = collated_dict['target'].cuda()
+                targets = collated_dict['label'].cuda()
                 
                 # Manifold40数据集没有这些特征，设为None或默认值
                 neighbor_index = torch.zeros_like(faces) if 'neighbors' not in collated_dict else collated_dict['neighbors'].cuda()
@@ -101,10 +101,7 @@ def train_model(model, criterion, optimizer, scheduler, cfg, data_loader, data_s
                                     ring_1=ring_1,
                                     ring_2=ring_2,
                                     ring_3=ring_3,
-                                    face_colors=0,
-                                    face_textures=0,
-                                    texture=texture,
-                                    uv_grid=uv_grid)
+                                    )
                     
                     # 如果模型输出是元组，取第一个元素作为分类结果
                     if isinstance(outputs, tuple):
@@ -180,9 +177,10 @@ def initialize_weights(model):
                 init.constant_(m.bias, 0)
 
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "0"
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     # 设置随机种子以保证结果可复现
     torch.manual_seed(42)
     np.random.seed(42)
@@ -191,11 +189,6 @@ if __name__ == '__main__':
     # 加载配置文件
     with open("config/Manifold40.yaml", 'r') as f:
         cfg = yaml.load(f, Loader=yaml.loader.SafeLoader)
-    
-    # 确保Manifold40数据集路径正确设置
-    if 'data_root' not in cfg['dataset'] or cfg['dataset']['data_root'] != '/mnt/newdisk/ktj/Manifold40':
-        print("Warning: Manifold40 dataset path not set correctly in config. Setting to default path.")
-        cfg['dataset']['data_root'] = '/mnt/newdisk/ktj/Manifold40'
     
     # 设置分类任务的损失函数
     criterion = nn.CrossEntropyLoss(label_smoothing=cfg['training'].get('label_smoothing', 0.1))
@@ -217,14 +210,14 @@ if __name__ == '__main__':
 
         # 创建Manifold40数据集实例
         data_set = {
-            x: Manifold40Dataset(cfg=cfg['dataset'], part=x) for x in ['train', 'test']
+            x: MeshClassificationDataset(cfg=cfg['dataset'], part=x) for x in ['train', 'test']
         }
         
         # 打印数据集信息
         print("Number of training samples: {}".format(len(data_set['train'])))
         print("Number of test samples: {}".format(len(data_set['test'])))
-        print("Number of classes: {}".format(data_set['train'].num_classes))
-        print("Class names: {}".format(data_set['train'].get_class_names()))
+        print("Number of classes: {}".format(len(data_set['train'].categories)))
+        # print("Class names: {}".format(data_set['train'].get_class_names()))
 
         # 创建数据加载器
         data_loader = {
@@ -249,7 +242,7 @@ if __name__ == '__main__':
         
         
         
-        model = MambaMeshForClassification(cfg['mamba']).cuda()
+        model = MambaMesh(cfg['mamba']).cuda()
         
         # 打印模型参数量
         total = sum([param.nelement() for param in model.parameters()])
@@ -259,9 +252,9 @@ if __name__ == '__main__':
         initialize_weights(model)
         
         # 如果有多个GPU，可以使用数据并行
-        if torch.cuda.device_count() > 1:
-            print("Using {} GPUs for training".format(torch.cuda.device_count()))
-            model = nn.DataParallel(model)
+        # if torch.cuda.device_count() > 1:
+        #     print("Using {} GPUs for training".format(torch.cuda.device_count()))
+        #     model = nn.DataParallel(model)
 
         # 创建优化器
         optimizer_type = cfg['training'].get('optimizer', 'adam')

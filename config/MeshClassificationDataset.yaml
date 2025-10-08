@@ -1,0 +1,24 @@
+# Mesh Classification Dataset Configuration
+
+# 数据集配置
+dataset:
+  data_root: /mnt/newdisk/ktj/Mesh/dataset_preprocessed/Manifold40  # 数据集根目录
+  part: train  # 数据集部分（train/val/test）
+  max_faces: 500  # 最大面数限制
+  augment_data: True  # 是否使用数据增强
+  augment_vert: False  # 是否对顶点进行增强
+  augment_rotation: True  # 是否进行随机旋转增强
+  jitter_sigma: 0.01  # 顶点抖动的标准差
+  jitter_clip: 0.05  # 顶点抖动的裁剪值
+
+# 训练配置
+train:
+  batch_size: 16  # 批次大小
+  num_workers: 4  # 数据加载线程数
+  pin_memory: True  # 是否使用固定内存
+  shuffle: True  # 是否打乱数据
+
+# 模型配置
+model:
+  num_classes: 40  # 类别数量（Manifold40数据集）
+  input_features: ['verts', 'faces', 'centers', 'normals', 'corners']  # 输入特征

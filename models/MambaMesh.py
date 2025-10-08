@@ -169,11 +169,15 @@ class Encoder(nn.Module):  ## Embedding module
             feature_global : B G C
         '''
         bs, g, n, _ = point_groups.shape
-        point_groups = point_groups.reshape(bs * g, n, self.input_channel)
+        # point_groups = point_groups.reshape(bs * g, n, self.input_channel)
+        point_groups = point_groups.reshape(bs * g, n, -1)
         # encoder
         feature = self.first_conv(point_groups.transpose(2, 1))  # BG 256 n
         feature_global = torch.max(feature, dim=2, keepdim=True)[0]  # BG 256 1
+
+        # concatenate global feature and local feature
         feature = torch.cat([feature_global.expand(-1, -1, n), feature], dim=1)  # BG 512 n
+
         feature = self.second_conv(feature)  # BG 1024 n
         feature_global = torch.max(feature, dim=2, keepdim=False)[0]  # BG 1024
         return feature_global.reshape(bs, g, self.encoder_channel)
@@ -272,7 +276,7 @@ class Sine(nn.Module):
     def forward(self, x):
         return torch.sin(self.w0 * x)
 
-
+ 
 # Local Geometry Aggregation
 class K_Norm(nn.Module):
     def __init__(self, out_dim, k_group_size, alpha, beta):
@@ -602,7 +606,7 @@ class MambaMesh(nn.Module):
         self.cls_dim = config['cls_dim']
         self.num_heads = config['num_heads']
 
-        self.group_size = config['group_size']
+        self.group_size = config['group_size']   
         self.num_group = config['num_group']
         self.encoder_dims = config['encoder_dims']
         self.input_channel = config['input_channel']
@@ -646,15 +650,30 @@ class MambaMesh(nn.Module):
         self.norm = nn.LayerNorm(self.trans_dim)
 
         self.FPUP = FeaturePropagation(self.trans_dim, [64, 64, 64])
+
+        # saliency map head
+        # self.fineture = nn.Sequential(
+        #     nn.Conv1d(64, 32, 1),
+        #     nn.BatchNorm1d(32),
+        #     nn.ReLU(),
+        #     nn.Conv1d(32, 32, 1),
+        #     nn.BatchNorm1d(32),
+        #     nn.ReLU(),
+        #     nn.Conv1d(32, 1, 1),
+        #     nn.Sigmoid(),
+        # )
+
+        # classification head
         self.fineture = nn.Sequential(
-            nn.Conv1d(64, 32, 1),
-            nn.BatchNorm1d(32),
+            nn.Conv1d(64, 256, 1),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Conv1d(32, 32, 1),
-            nn.BatchNorm1d(32),
+            nn.Conv1d(256, 128, 1),
+            nn.BatchNorm1d(128),
             nn.ReLU(),
-            nn.Conv1d(32, 1, 1),
-            nn.Sigmoid(),
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(),
+            nn.Linear(128, config['cls_dim'])
         )
 
         self.label_smooth = config['label_smooth']
@@ -703,10 +722,11 @@ class MambaMesh(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    # def forward(self, verts, faces, centers, normals, corners, neighbor_index,
+    #             ring_1, ring_2, ring_3, face_colors, face_textures, texture, uv_grid):
     def forward(self, verts, faces, centers, normals, corners, neighbor_index,
-                ring_1, ring_2, ring_3, face_colors, face_textures, texture, uv_grid):
-        # Face Texture features
-        tex_fea = self.FaceTex_Extractor(face_textures, texture, uv_grid)
+            ring_1, ring_2, ring_3):
+
         # Face Spatial features
         spatial_fea0 = self.Spatial_Extractor(centers)
         # Face Shape features
@@ -714,11 +734,20 @@ class MambaMesh(nn.Module):
         # Face Curve features
         curve_fea0 = self.Structural_Extractor(normals, ring_1)
 
-        feat_inp = torch.concatenate([tex_fea, spatial_fea0, shape_fea0, curve_fea0], dim=1)
+        # [B, C1+C2+C3, F]
+        feat_inp = torch.concatenate([spatial_fea0, shape_fea0, curve_fea0], dim=1)
+
+        # [B, C_total, F] → [B, F, C_total]
         feat_inp = feat_inp.permute(0, 2, 1).contiguous()
+
+        # [B, 3, F] → [B, F, 3]
         centers = centers.permute(0, 2, 1).contiguous()
 
+        # 分组操作：从 F 个面中选 G 个中心，每个中心配 K 个邻域面（G=num_group, K=group_size）
+        # to do:这里的分组操作是随机的，后续可以考虑根据中心位置或其他特征进行分组
         neighborhood, center, neighborhood_idx = self.group_divider(centers, ring_1, verts, faces)  # B G K 3
+
+        # features after grouping and indexing: [B, 组数, 每组几个, C_total]
         feat_inp = index_points(feat_inp, neighborhood_idx)
         group_input_tokens = self.encoder(feat_inp)  # B G C
 
@@ -737,5 +766,10 @@ class MambaMesh(nn.Module):
         concat_f = self.FPUP(centers, center, None, x)
 
         ret = self.fineture(concat_f)
-        ret = ret.squeeze()
+        # ret = ret.squeeze()
         return ret
+
+
+
+
+        
