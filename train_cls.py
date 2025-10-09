@@ -2,6 +2,9 @@ import copy
 import os
 import random
 import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
@@ -149,6 +152,9 @@ def train_model(model, criterion, optimizer, scheduler, cfg, data_loader, data_s
                 torch.save(copy.deepcopy(model.state_dict()),
                            os.path.join(cfg['ckpt_root'], 'epoch_{}.pkl'.format(epoch)))
     
+
+
+
     # 保存最终的混淆矩阵数据（可选）
     if not os.path.exists(visual_path):
         os.makedirs(visual_path)

@@ -11,89 +11,87 @@ from pytorch3d.transforms import Rotate, RotateAxisAngle, Transform3d
 import math
 from torchvision import transforms
 import torch.nn.functional as F
+from utils.Manifold40 import model_net_labels
 
-
-class MeshDataset(data.Dataset):
-
+class MeshClassificationDataset(data.Dataset):
     def __init__(self, cfg, part='train', mesh_paths=None):
-        self.augment_data = cfg['augment_data']
+
+        self.augment_data = cfg['augment_data'] if 'augment_data' in cfg else False
         if self.augment_data and part == "train":
+            self.augment_vert = cfg.get('augment_vert', False)
+            self.augment_rotation = cfg.get('augment_rotation', True)
+        else:
             self.augment_vert = False
-            self.augment_tex = True
-            self.augment_rotation = True
-        if part == "test":
-            self.augment_vert = False
-            self.augment_tex = False
             self.augment_rotation = False
 
-        self.device = torch.device('cpu:0')
+        self.device = torch.device(f"cuda:{cfg['devices']}")
         self.root = cfg['data_root']
         self.max_faces = cfg['max_faces']
         self.part = part
+        self.max_ver = cfg['max_ver']
         if self.augment_data:
-            self.jitter_sigma = cfg['jitter_sigma']
-            self.jitter_clip = cfg['jitter_clip']
+            self.jitter_sigma = cfg.get('jitter_sigma', 0.01)
+            self.jitter_clip = cfg.get('jitter_clip', 0.05)
 
+        # 获取所有类别名称
+        self.categories = sorted(model_net_labels)
+
+        self.num_classes = len(self.categories)
+        # 创建类别到索引的映射
+        self.category_to_idx = {cat: idx for idx, cat in enumerate(self.categories)}
+        
+        # 收集所有数据文件路径和对应的标签
         self.data = []
         for mesh_path in mesh_paths:
-            mesh_name = mesh_path.split("/")[-1].split(".")[0]
-            filename = mesh_path
-            if filename.endswith('.npz') or filename.endswith('.obj'):
-                target_name = os.path.join(self.root+"/SaliencyMap/rgb_texture", mesh_name+".csv")
-                npz_name = os.path.join(self.root+"/Ring/rgb_texture", mesh_name+".npz")
-                fix_name = os.path.join(self.root+"/FixationMap", mesh_name+".csv")
-                self.data.append((filename, target_name, npz_name, fix_name, mesh_name))
+            if mesh_path.endswith('.npz') or mesh_path.endswith('.obj'):
+                mesh_name = mesh_path.split("/")[-1].split(".")[0]
+                self.data.append((mesh_path, mesh_name))
 
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            # transforms.Resize(1024),
-            # transforms.GaussianBlur(kernel_size=(3, 3), sigma=10)
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
+
+        # self.transform = transforms.Compose([
+        #     transforms.ToTensor(),
+        #     # transforms.Resize(1024),
+        #     # transforms.GaussianBlur(kernel_size=(3, 3), sigma=10)
+        #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        # ])
+
+        # for category in self.categories:
+        #     category_dir = os.path.join(self.root, category)
+        #     if os.path.isdir(category_dir):
+        #         # 遍历类别文件夹中的所有npz文件
+        #         for file in os.listdir(os.path.join(category_dir, part)):
+        #             if file.endswith('.npz'):
+        #                 file_path = os.path.join(category_dir,part, file)
+        #                 # 标签是类别的索引
+        #                 label = self.category_to_idx[category]
+        #                 self.data.append((file_path, label, category, file[:-4]))  # 去掉.npz后缀作为名称
+
+        print(f"Loaded {len(self.data)} samples from {len(self.categories)} categories: {self.categories}")
 
     def __getitem__(self, i):
-        filename, target_name, npz_name, fix_name, mesh_name = self.data[i]
-        target = np.genfromtxt(target_name, delimiter=',', dtype=float)
-        target = torch.from_numpy(target).float()
-        ringn = np.load(npz_name)
-        mesh = self.collect_data(filename)
-        
+        mesh_path, mesh_name = self.data[i]
+        mesh = self.collect_data(mesh_path)
 
+
+        # 加载npz文件
+        # data = np.load(file_path, allow_pickle=True)
+        
         # position data
         verts = mesh['verts']
         centers = mesh['centers']
         normals = mesh['normals']
         corners = mesh['corners']
-        # neighbor data
-        faces = ringn['faces']
-        ring_1 = ringn['ring_1']
-        ring_2 = ringn['ring_2']
-        ring_3 = ringn['ring_3']
-        neighbors = ringn['neighbors']
-        face_colors = ringn['face_colors']
-        face_textures = ringn['face_textures']
-        texture = ringn['texture']
-        uv_grid = ringn['uv_grid']
+        
+        # 如果存在预计算的特征，则加载它们
+        faces = data['faces']
+        ring_1 = data['ring_1']
+        ring_2 = data['ring_2']
+        ring_3 = data['ring_3']
+        neighbors = data['neighbors']
+        label = data['label']
 
-        # augment the texture image
-        if self.augment_tex and self.part == 'train':
-            texture = np.transpose(texture, axes=(1, 2, 0))
-            texture = self.transform(texture)
-            texture = texture.numpy()
 
-        # mesh visualization
-        if "visual" == "no":
-            img_tensor = np.transpose(texture, axes=(1, 2, 0))
-            img_tensor = self.transform(img_tensor)
-            img_tensor = img_tensor.unsqueeze(0).unsqueeze(2)
-            grids = torch.tensor(uv_grid).unsqueeze(0)
-            face_textures_ = F.grid_sample(img_tensor, grid=grids, mode='nearest', align_corners=True)
-            face_textures_ = face_textures_.squeeze().transpose(0, 1)
-            import trimesh
-            face_colors_ = face_textures_[:, :, 0, 0]
-            mesh_new = trimesh.Trimesh(vertices=verts, faces=faces, face_colors=face_colors_)
-            mesh_new.visual.face_colors = face_colors_
-            mesh_new.export("visualization/{}.obj".format(mesh_name))
+
 
         # Convert to tensor
         faces = torch.from_numpy(faces).long()
@@ -101,24 +99,45 @@ class MeshDataset(data.Dataset):
         ring_2 = torch.from_numpy(ring_2).long()
         ring_3 = torch.from_numpy(ring_3).long()
         neighbors = torch.from_numpy(neighbors).long()
-        face_colors = torch.from_numpy(face_colors).float()
-        face_textures = torch.from_numpy(face_textures).float()
-        verts = verts.float()
-        centers = centers.float()
-        normals = normals.float()
-        corners = corners.float()
+        # verts = verts.float()
+        # centers = centers.float()
+        # normals = normals.float()
 
-        # get corner vectors
-        corners = corners - torch.cat([centers, centers, centers], 1)
+        # # 获取角向量
+        # if corners.dim() == 3 and corners.shape[1] == 3:
+        #     corners = corners - centers.unsqueeze(1).repeat(1, 3, 1)
+        #     corners = corners.view(corners.shape[0], -1)  # 展平为 (F, 9)
 
-        # data augmentation
+        # corners = corners.float()
+        
+ 
+        # 数据增强
         if self.augment_data and self.part == 'train':
-            # jitter 中心点坐标加噪
-            jittered_data = torch.clip(self.jitter_sigma * torch.randn(*face_textures.shape),
-                                       -1 * self.jitter_clip, self.jitter_clip)  # clip截取区间值
-            face_textures = face_textures + jittered_data
+            # 顶点抖动
+            if self.augment_vert:
+                jittered_data = torch.clamp(
+                    self.jitter_sigma * torch.randn_like(verts),
+                    -self.jitter_clip, self.jitter_clip
+                )
+                verts = verts + jittered_data
+            
+            # 随机旋转
+            if self.augment_rotation:
+                rotation_matrix = self.get_random_rotation_matrix()
+                R = Rotate(rotation_matrix, device=self.device)
+                verts = R.transform_points(verts.unsqueeze(0)).squeeze(0)
+                
+                # 更新法向量
+                normals = torch.matmul(normals, rotation_matrix.t())
 
-        # Dictionary for collate_batched_meshes
+
+        # 创建标签tensor
+        label_tensor = torch.tensor(label, dtype=torch.long)
+        verts = torch.from_numpy(verts).float()
+        centers = torch.from_numpy(centers).float()
+        normals = torch.from_numpy(normals).float()
+        corners = torch.from_numpy(corners).float()
+        # 字典用于批处理
         collated_dict = {
             'faces': faces,
             'verts': verts,
@@ -129,13 +148,10 @@ class MeshDataset(data.Dataset):
             'ring_1': ring_1,
             'ring_2': ring_2,
             'ring_3': ring_3,
-            'target': target,
-            'face_colors': face_colors,
-            'face_textures': face_textures,
-            'texture': texture,
-            'uv_grid': uv_grid,
+            'label': label_tensor,
             'mesh_name': mesh_name
         }
+        
         return collated_dict
 
     def __len__(self):
@@ -172,6 +188,14 @@ class MeshDataset(data.Dataset):
         R = torch.matmul(torch.matmul(R_z, R_y), R_x)
         return R
 
+    def get_categories(self):
+        """返回类别列表"""
+        return self.categories
+    
+    def get_num_classes(self):
+        """返回类别数量"""
+        return len(self.categories)
+    
     def is_mesh_valid(self, mesh):
         """
         Check validity of pytorch3D mesh
@@ -205,29 +229,6 @@ class MeshDataset(data.Dataset):
 
         return validity
 
-    def normalize_mesh(self, verts, faces):
-        """
-        Normalize and center input mesh to fit in a sphere of radius 1 centered at (0,0,0)
-
-        Args:
-            mesh: pytorch3D mesh
-
-        Returns:
-            mesh, faces, verts, edges, v_normals, f_normals: normalized pytorch3D mesh and other mesh
-            information
-        """
-        verts = verts - verts.mean(0)
-        scale = max(verts.abs().max(0)[0])
-        verts = verts / scale
-        mesh = Meshes(verts=[verts], faces=[faces])
-        faces = mesh.faces_packed().squeeze(0)
-        verts = mesh.verts_packed().squeeze(0)
-        edges = mesh.edges_packed().squeeze(0)
-        v_normals = mesh.verts_normals_packed().squeeze(0)
-        f_normals = mesh.faces_normals_packed().squeeze(0)
-
-        return mesh, faces, verts, edges, v_normals, f_normals
-
     def pytorch3D_mesh(self, f_path, device):
         """
         Read pytorch3D mesh from path
@@ -258,33 +259,6 @@ class MeshDataset(data.Dataset):
                                     -1 * self.jitter_clip, self.jitter_clip)  # clip截取区间值
             verts = verts + jittered_data
         return mesh, faces, verts, edges, v_normals, f_normals
-
-    def fpath(self, dir_name):
-        """
-        Return all obj file in a directory
-
-        Args:
-            dir_name: root path to obj files
-
-        Returns:
-            f_path: list of obj files paths
-        """
-        f_path = []
-        for root, dirs, files in os.walk(dir_name, topdown=False):
-            for f in files:
-                if f.endswith('.obj'):
-                    if os.path.exists(os.path.join(root, f)):
-                        f_path.append(os.path.join(root, f))
-        return f_path
-
-    def find_neighbor(self, faces, faces_contain_this_vertex, vf1, vf2, except_face):
-        for i in (faces_contain_this_vertex[vf1] & faces_contain_this_vertex[vf2]):
-            if i != except_face:
-                face = faces[i].tolist()
-                face.remove(vf1)
-                face.remove(vf2)
-                return i
-        return except_face
 
     def collect_data(self, path):
         mesh, faces, verts, edges, v_normals, f_normals = self.pytorch3D_mesh(path, self.device)
@@ -318,8 +292,8 @@ class MeshDataset(data.Dataset):
         faces_feature = np.concatenate([centers, corners, f_normals], axis=1)
         assert faces_feature.shape == (max_faces, 15)
 
-        max_ver = 20500
-        verts = np.pad(verts, ((0, max_ver - verts.shape[0]), (0, 0)), mode='constant')
+        # max_ver = 252
+        verts = np.pad(verts, ((0, self.max_ver - verts.shape[0]), (0, 0)), mode='constant')
         verts = torch.from_numpy(verts)
 
         collated_dict = {
@@ -330,3 +304,4 @@ class MeshDataset(data.Dataset):
             'corners': corners,
         }
         return collated_dict
+    
