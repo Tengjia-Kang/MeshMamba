@@ -56,7 +56,7 @@ class MeshClassificationDataset(data.Dataset):
                 mesh_name = mesh_path.split("/")[-1].split(".")[0]
                 target = mesh_path.split('/')[-3]
                 label = model_net_labels.index(target)
-                npz_name = os.path.join("/home/kangkang/Projects/MeshMamba/dataset/Manifold40_ringn", mesh_name+".npz")
+                npz_name = os.path.join("/home/ktj/Projects/MeshMamba/dataset/processed/Manifold_ringn", mesh_name+".npz")
                 self.data.append((mesh_path, npz_name, mesh_name, label))
 
         self.transform = transforms.Compose([
@@ -227,30 +227,54 @@ class MeshClassificationDataset(data.Dataset):
         R = Rotate(angel, device=device)
         if self.augment_rotation and self.part == "train":
             mesh = mesh.update_padded(R.transform_points(mesh.verts_padded()))
-        faces = mesh.faces_packed()
-        verts = mesh.verts_packed()
+        faces = mesh.faces_packed()       # (F, 3)
+        verts = mesh.verts_packed()       # (V, 3)
         # edges = mesh.edges_packed()
         # v_normals = mesh.verts_normals_packed()
-        f_normals = mesh.faces_normals_packed()
+        f_normals = mesh.faces_normals_packed() # (F, 3)
         # data augmentation
         if self.augment_vert and self.part == 'train':
             # jitter 中心点坐标加噪
             jittered_data = np.clip(self.jitter_sigma * np.random.randn(*verts.shape),
                                     -1 * self.jitter_clip, self.jitter_clip)  # clip截取区间值
             verts = verts + jittered_data
-                # max_ver = 252
         
-        # 填充顶点到最大顶点数 pad vertex to max_ver
-        pad_amount = self.max_ver - verts.shape[0]
-        if pad_amount > 0:
-            # 使用 PyTorch 的 pad 函数，注意格式是 (0, 0, 0, pad_amount)
-            # 表示在最后一个维度的前后各填充0，在倒数第二个维度的前面填充0、后面填充pad_amount
-            verts = torch.nn.functional.pad(verts, (0, 0, 0, pad_amount), mode='constant', value=0)
-        elif pad_amount < 0:
-            # 如果顶点数量超过最大值，截断到指定长度
-            verts = verts[:self.max_ver, :]
+        # 随机顶点采样：若顶点数量大于max_ver则随机选择
+        V = verts.shape[0]
+        if V > self.max_ver:
+            idx = torch.randperm(V, device=device)[:self.max_ver]
+            verts = verts[idx]
+            # ⚠️ 同时调整faces中超出索引的部分
+            face_mask = (faces < self.max_ver).all(dim=1)
+            faces = faces[face_mask]
+        elif V < self.max_ver:
+            pad = self.max_ver - V
+            verts = F.pad(verts, (0, 0, 0, pad), mode='constant', value=0.0)
+
+        # 若面数仍多于最大限制 → 随机选取
+        F_count = faces.shape[0]
+        if F_count > self.max_faces:
+            face_idx = torch.randperm(F_count, device=device)[:self.max_faces]
+            faces = faces[face_idx]
+            f_normals = f_normals[face_idx]
+        elif F_count < self.max_faces:
+            pad = self.max_faces - F_count
+            faces = F.pad(faces, (0, 0, 0, pad), value=0)
+            f_normals = F.pad(f_normals, (0, 0, 0, pad), value=0.0)
+        # # 填充顶点到最大顶点数 pad vertex to max_ver
+        # pad_amount = self.max_ver - verts.shape[0]
+        # if pad_amount > 0:
+        #     # 使用 PyTorch 的 pad 函数，注意格式是 (0, 0, 0, pad_amount)
+        #     # 表示在最后一个维度的前后各填充0，在倒数第二个维度的前面填充0、后面填充pad_amount
+        #     verts = torch.nn.functional.pad(verts, (0, 0, 0, pad_amount), mode='constant', value=0)
+        # elif pad_amount < 0:
+        #     # 如果顶点数量超过最大值，截断到指定长度
+        #     verts = verts[:self.max_ver, :]
         # verts = torch.from_numpy(verts)
         # return mesh, faces, verts, edges, v_normals, f_normals
+        verts = verts.cpu()
+        faces = faces.cpu()
+        f_normals = f_normals.cpu()
         return mesh, faces, verts, f_normals
 
     def collect_data(self, path):
@@ -292,5 +316,7 @@ class MeshClassificationDataset(data.Dataset):
             'normals': f_normals,
             'corners': corners,
         }
+        assert collated_dict['verts'].shape == (self.max_ver, 3), f"Verts shape mismatch {collated_dict['verts'].shape}"
+        assert collated_dict['faces'].shape == (self.max_faces, 3), f"Faces shape mismatch {collated_dict['faces'].shape}"
         return collated_dict
     
