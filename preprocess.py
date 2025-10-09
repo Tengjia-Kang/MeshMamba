@@ -80,23 +80,23 @@ def get_manifold40_label(path):
      
     return label
 
-def fpath(dir_name):
-    """
-    Return all obj file in a directory
+# def fpath(dir_name):
+#     """
+#     Return all obj file in a directory
 
-    Args:
-        dir_name: root path to obj files
+#     Args:
+#         dir_name: root path to obj files
 
-    Returns:
-        f_path: list of obj files paths
-    """
-    f_path = []
-    for root, dirs, files in os.walk(dir_name, topdown=False):
-        for f in files:
-            if f.endswith('.obj'):
-                if os.path.exists(os.path.join(root, f)):
-                    f_path.append(os.path.join(root, f))
-    return f_path
+#     Returns:
+#         f_path: list of obj files paths
+#     """
+#     f_path = []
+#     for root, dirs, files in os.walk(dir_name, topdown=False):
+#         for f in files:
+#             if f.endswith('.obj'):
+#                 if os.path.exists(os.path.join(root, f)):
+#                     f_path.append(os.path.join(root, f))
+#     return f_path
 
 
 def normalize_mesh(verts, faces):
@@ -121,6 +121,25 @@ def normalize_mesh(verts, faces):
     f_normals = mesh.faces_normals_packed().squeeze(0)
 
     return mesh, faces, verts, edges, v_normals, f_normals
+
+def fpath(dir_name):
+    """
+    Return all obj file in a directory
+
+    Args:
+        dir_name: root path to obj files
+
+    Returns:
+        f_path: list of obj files paths
+    """
+    f_path = []
+    for root, dirs, files in os.walk(dir_name, topdown=False):
+        for f in files:
+            if f.endswith('.obj'):
+                if os.path.exists(os.path.join(root, f)):
+                    f_path.append(os.path.join(root, f))
+    return f_path
+
 
 
 def main():

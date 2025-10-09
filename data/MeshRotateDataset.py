@@ -64,6 +64,7 @@ class MeshDataset(data.Dataset):
         centers = mesh['centers']
         normals = mesh['normals']
         corners = mesh['corners']
+        
         # neighbor data
         faces = ringn['faces']
         ring_1 = ringn['ring_1']

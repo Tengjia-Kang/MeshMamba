@@ -45,7 +45,8 @@ class MeshClassificationDataset(data.Dataset):
         for mesh_path in mesh_paths:
             if mesh_path.endswith('.npz') or mesh_path.endswith('.obj'):
                 mesh_name = mesh_path.split("/")[-1].split(".")[0]
-                self.data.append((mesh_path, mesh_name))
+                npz_name = os.path.join(self.root+"/Ring/no_rgb_texture", mesh_name+".npz")
+                self.data.append((mesh_path, npz_name, mesh_name))
 
 
         # self.transform = transforms.Compose([
@@ -82,16 +83,29 @@ class MeshClassificationDataset(data.Dataset):
         normals = mesh['normals']
         corners = mesh['corners']
         
-        # 如果存在预计算的特征，则加载它们
-        faces = data['faces']
-        ring_1 = data['ring_1']
-        ring_2 = data['ring_2']
-        ring_3 = data['ring_3']
-        neighbors = data['neighbors']
-        label = data['label']
 
+        # neighbor data
+        faces = ringn['faces']
+        ring_1 = ringn['ring_1']
+        ring_2 = ringn['ring_2']
+        ring_3 = ringn['ring_3']
+        neighbors = ringn['neighbors']
 
-
+        # data augmentation for training
+        if self.augment_data and self.part == 'train':
+            # vertex jittering
+            if self.augment_vert:
+                jittered_data = torch.clamp(
+                    self.jitter_sigma * torch.randn_like(verts),
+                    -self.jitter_clip, self.jitter_clip
+                )
+                verts = verts + jittered_data 
+            # random rotation
+            if self.augment_rotation:
+                rotation_matrix = self.get_random_rotation_matrix()
+                R = Rotate(rotation_matrix, device=self.device)
+                verts = R.transform_points(verts.unsqueeze(0)).squeeze(0)
+                normals = torch.matmul(normals, rotation_matrix.t())
 
         # Convert to tensor
         faces = torch.from_numpy(faces).long()
@@ -99,38 +113,6 @@ class MeshClassificationDataset(data.Dataset):
         ring_2 = torch.from_numpy(ring_2).long()
         ring_3 = torch.from_numpy(ring_3).long()
         neighbors = torch.from_numpy(neighbors).long()
-        # verts = verts.float()
-        # centers = centers.float()
-        # normals = normals.float()
-
-        # # 获取角向量
-        # if corners.dim() == 3 and corners.shape[1] == 3:
-        #     corners = corners - centers.unsqueeze(1).repeat(1, 3, 1)
-        #     corners = corners.view(corners.shape[0], -1)  # 展平为 (F, 9)
-
-        # corners = corners.float()
-        
- 
-        # 数据增强
-        if self.augment_data and self.part == 'train':
-            # 顶点抖动
-            if self.augment_vert:
-                jittered_data = torch.clamp(
-                    self.jitter_sigma * torch.randn_like(verts),
-                    -self.jitter_clip, self.jitter_clip
-                )
-                verts = verts + jittered_data
-            
-            # 随机旋转
-            if self.augment_rotation:
-                rotation_matrix = self.get_random_rotation_matrix()
-                R = Rotate(rotation_matrix, device=self.device)
-                verts = R.transform_points(verts.unsqueeze(0)).squeeze(0)
-                
-                # 更新法向量
-                normals = torch.matmul(normals, rotation_matrix.t())
-
-
         # 创建标签tensor
         label_tensor = torch.tensor(label, dtype=torch.long)
         verts = torch.from_numpy(verts).float()

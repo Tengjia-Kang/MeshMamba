@@ -126,9 +126,9 @@ def find_neighbor(faces, faces_contain_this_vertex, vf1, vf2, except_face):
 def main():
     device = torch.device('cpu:0')
     # dataset base root
-    base_root = '/mnt/newdisk/ktj/Manifold40'
+    data_root = '/mnt/newdisk/ktj/Mesh/Manifold40'
     # To process the dataset enter the path where they are stored
-    data_root = base_root + '/MeshFile/non_texture'  # 处理无纹理的mesh
+    save_dir = '/home/ktj/Projects/MeshMamba/dataset/processed/Manifold_ringn'  # 处理无纹理的mesh
     max_faces = 500
     if not os.path.exists(data_root):
         raise Exception('Dataset not found at {0}'.format(data_root))
@@ -280,8 +280,7 @@ def main():
             # 创建默认的3rd-Ring邻居
             faces_neighbor_3rd_ring = np.tile(np.arange(12) % len(faces), (len(faces), 1))
         
-        # 创建保存目录（如果不存在）
-        save_dir = base_root + f"/Ring/non_texture"
+
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         
