@@ -124,7 +124,7 @@ def find_neighbor(faces, faces_contain_this_vertex, vf1, vf2, except_face):
 
 
 def main():
-    device = torch.device('cpu:0')
+    device = torch.device('cuda')
     # dataset base root
     data_root = '/mnt/newdisk/ktj/Mesh/Manifold40'
     # To process the dataset enter the path where they are stored
