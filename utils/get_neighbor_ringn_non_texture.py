@@ -145,7 +145,7 @@ def main():
         current_faces = faces.shape[0]
         if current_faces > max_faces:
         # 面数过多，随机采样500个面
-            indices = torch.randperm(current_faces)[:target_faces]
+            indices = torch.randperm(current_faces)[:max_faces]
             faces = faces[indices]
             f_normals = f_normals[indices] if f_normals is not None else None
         elif current_faces < max_faces:
