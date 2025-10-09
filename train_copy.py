@@ -97,7 +97,7 @@ def plot_and_save_confusion_matrix(y_true, y_pred, classes, out_path, normalize=
 def train_model(cfg, exp_id):    
     # Define device based on available GPUs
     if torch.cuda.is_available():
-        device = torch.device(f"cuda:1")
+        device = torch.device(f"cuda:0")
     else:
         device = torch.device("cpu")
         use_dp = False

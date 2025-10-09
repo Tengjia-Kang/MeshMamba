@@ -13,6 +13,15 @@ from torchvision import transforms
 import torch.nn.functional as F
 from utils.Manifold40 import model_net_labels
 
+model_net_labels = [
+    'bathtub', 'bed', 'chair', 'desk', 'dresser', 'monitor', 'night_stand', 'sofa', 'table', 'toilet',
+    'wardrobe', 'bookshelf', 'laptop', 'door', 'lamp', 'person', 'curtain', 'piano', 'airplane', 'cup',
+    'cone', 'tent', 'radio', 'stool', 'range_hood', 'car', 'sink', 'guitar', 'tv_stand', 'stairs',
+    'mantel', 'bench', 'plant', 'bottle', 'bowl', 'flower_pot', 'keyboard', 'vase', 'xbox', 'glass_box'
+]
+model_net_labels.sort()
+
+
 class MeshClassificationDataset(data.Dataset):
     def __init__(self, cfg, part='train', mesh_paths=None):
 
@@ -45,34 +54,24 @@ class MeshClassificationDataset(data.Dataset):
         for mesh_path in mesh_paths:
             if mesh_path.endswith('.npz') or mesh_path.endswith('.obj'):
                 mesh_name = mesh_path.split("/")[-1].split(".")[0]
-                npz_name = os.path.join(self.root+"/Ring/no_rgb_texture", mesh_name+".npz")
-                self.data.append((mesh_path, npz_name, mesh_name))
+                target = mesh_path.split('/')[-3]
+                label = model_net_labels.index(target)
+                npz_name = os.path.join("/home/ktj/Projects/MeshMamba/dataset/processed/Manifold_ringn", mesh_name+".npz")
+                self.data.append((mesh_path, npz_name, mesh_name, label))
 
-
-        # self.transform = transforms.Compose([
-        #     transforms.ToTensor(),
-        #     # transforms.Resize(1024),
-        #     # transforms.GaussianBlur(kernel_size=(3, 3), sigma=10)
-        #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        # ])
-
-        # for category in self.categories:
-        #     category_dir = os.path.join(self.root, category)
-        #     if os.path.isdir(category_dir):
-        #         # 遍历类别文件夹中的所有npz文件
-        #         for file in os.listdir(os.path.join(category_dir, part)):
-        #             if file.endswith('.npz'):
-        #                 file_path = os.path.join(category_dir,part, file)
-        #                 # 标签是类别的索引
-        #                 label = self.category_to_idx[category]
-        #                 self.data.append((file_path, label, category, file[:-4]))  # 去掉.npz后缀作为名称
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Resize(1024),
+            # transforms.GaussianBlur(kernel_size=(3, 3), sigma=10)
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
         print(f"Loaded {len(self.data)} samples from {len(self.categories)} categories: {self.categories}")
 
     def __getitem__(self, i):
-        mesh_path, mesh_name = self.data[i]
+        mesh_path, npz_name, mesh_name, label = self.data[i]
         mesh = self.collect_data(mesh_path)
-
+        ringn = np.load(npz_name)
 
         # 加载npz文件
         # data = np.load(file_path, allow_pickle=True)
@@ -83,7 +82,6 @@ class MeshClassificationDataset(data.Dataset):
         normals = mesh['normals']
         corners = mesh['corners']
         
-
         # neighbor data
         faces = ringn['faces']
         ring_1 = ringn['ring_1']
@@ -115,10 +113,10 @@ class MeshClassificationDataset(data.Dataset):
         neighbors = torch.from_numpy(neighbors).long()
         # 创建标签tensor
         label_tensor = torch.tensor(label, dtype=torch.long)
-        verts = torch.from_numpy(verts).float()
-        centers = torch.from_numpy(centers).float()
-        normals = torch.from_numpy(normals).float()
-        corners = torch.from_numpy(corners).float()
+        # verts = torch.from_numpy(verts).float()
+        # centers = torch.from_numpy(centers).float()
+        # normals = torch.from_numpy(normals).float()
+        # corners = torch.from_numpy(corners).float()
         # 字典用于批处理
         collated_dict = {
             'faces': faces,
@@ -231,8 +229,8 @@ class MeshClassificationDataset(data.Dataset):
             mesh = mesh.update_padded(R.transform_points(mesh.verts_padded()))
         faces = mesh.faces_packed()
         verts = mesh.verts_packed()
-        edges = mesh.edges_packed()
-        v_normals = mesh.verts_normals_packed()
+        # edges = mesh.edges_packed()
+        # v_normals = mesh.verts_normals_packed()
         f_normals = mesh.faces_normals_packed()
         # data augmentation
         if self.augment_vert and self.part == 'train':
@@ -240,10 +238,23 @@ class MeshClassificationDataset(data.Dataset):
             jittered_data = np.clip(self.jitter_sigma * np.random.randn(*verts.shape),
                                     -1 * self.jitter_clip, self.jitter_clip)  # clip截取区间值
             verts = verts + jittered_data
-        return mesh, faces, verts, edges, v_normals, f_normals
+                # max_ver = 252
+        
+        # 填充顶点到最大顶点数 pad vertex to max_ver
+        pad_amount = self.max_ver - verts.shape[0]
+        if pad_amount > 0:
+            # 使用 PyTorch 的 pad 函数，注意格式是 (0, 0, 0, pad_amount)
+            # 表示在最后一个维度的前后各填充0，在倒数第二个维度的前面填充0、后面填充pad_amount
+            verts = torch.nn.functional.pad(verts, (0, 0, 0, pad_amount), mode='constant', value=0)
+        elif pad_amount < 0:
+            # 如果顶点数量超过最大值，截断到指定长度
+            verts = verts[:self.max_ver, :]
+        # verts = torch.from_numpy(verts)
+        # return mesh, faces, verts, edges, v_normals, f_normals
+        return mesh, faces, verts, f_normals
 
     def collect_data(self, path):
-        mesh, faces, verts, edges, v_normals, f_normals = self.pytorch3D_mesh(path, self.device)
+        mesh, faces, verts, f_normals = self.pytorch3D_mesh(path, self.device)
         max_faces = faces.shape[0]
         if not self.is_mesh_valid(mesh):
             raise ValueError('Mesh is invalid!')
@@ -271,12 +282,8 @@ class MeshClassificationDataset(data.Dataset):
         corners = corners.reshape(-1, 9)
         assert f_normals.shape == (max_faces, 3)
 
-        faces_feature = np.concatenate([centers, corners, f_normals], axis=1)
-        assert faces_feature.shape == (max_faces, 15)
-
-        # max_ver = 252
-        verts = np.pad(verts, ((0, self.max_ver - verts.shape[0]), (0, 0)), mode='constant')
-        verts = torch.from_numpy(verts)
+        # faces_feature = np.concatenate([centers, corners, f_normals], axis=1)
+        # assert faces_feature.shape == (max_faces, 15)
 
         collated_dict = {
             'faces': faces,

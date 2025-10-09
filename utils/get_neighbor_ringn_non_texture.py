@@ -71,7 +71,7 @@ def normalize_mesh(verts, faces):
     return mesh, faces, verts, edges, v_normals, f_normals
 
 
-def pytorch3D_mesh_non_texture(f_path, device):
+def pytorch3D_mesh(f_path, device):
     """
     Read pytorch3D mesh from path for non-textured meshes
 
@@ -124,7 +124,7 @@ def find_neighbor(faces, faces_contain_this_vertex, vf1, vf2, except_face):
 
 
 def main():
-    device = torch.device('cuda')
+    device = torch.device('cpu')
     # dataset base root
     data_root = '/mnt/newdisk/ktj/Mesh/Manifold40'
     # To process the dataset enter the path where they are stored
@@ -140,12 +140,20 @@ def main():
         print(f"Processing: {path}")
         
         # 调用无纹理版本的mesh加载函数
-        (mesh, faces, verts, edges, v_normals, f_normals) = pytorch3D_mesh_non_texture(path, device)
+        (mesh, faces, verts, edges, v_normals, f_normals) = pytorch3D_mesh(path, device)
         
-        # 更新最大面数
         current_faces = faces.shape[0]
         if current_faces > max_faces:
-            max_faces = current_faces
+        # 面数过多，随机采样500个面
+            indices = torch.randperm(current_faces)[:target_faces]
+            faces = faces[indices]
+            f_normals = f_normals[indices] if f_normals is not None else None
+        elif current_faces < max_faces:
+        # 面数不足，重复填充到500个面
+            repeat_times = (max_faces // current_faces) + 1
+            faces = faces.repeat(repeat_times, 1)[:max_faces]
+            if f_normals is not None:
+                f_normals = f_normals.repeat(repeat_times, 1)[:max_faces]
         
         # 检查mesh有效性
         if not is_mesh_valid(mesh):
