@@ -126,9 +126,9 @@ def find_neighbor(faces, faces_contain_this_vertex, vf1, vf2, except_face):
 def main():
     device = torch.device('cpu')
     # dataset base root
-    data_root = '/mnt/newdisk/ktj/Mesh/Manifold40'
+    data_root = '/home/kangkang/Projects/MeshMamba/dataset/Manifold40'
     # To process the dataset enter the path where they are stored
-    save_dir = '/home/ktj/Projects/MeshMamba/dataset/processed/Manifold_ringn'  # 处理无纹理的mesh
+    save_dir = '/home/kangkang/Projects/MeshMamba/dataset/Manifold40_ringn'  # 处理无纹理的mesh
     max_faces = 500
     if not os.path.exists(data_root):
         raise Exception('Dataset not found at {0}'.format(data_root))

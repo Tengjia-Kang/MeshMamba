@@ -56,7 +56,7 @@ class MeshClassificationDataset(data.Dataset):
                 mesh_name = mesh_path.split("/")[-1].split(".")[0]
                 target = mesh_path.split('/')[-3]
                 label = model_net_labels.index(target)
-                npz_name = os.path.join("/home/ktj/Projects/MeshMamba/dataset/processed/Manifold_ringn", mesh_name+".npz")
+                npz_name = os.path.join("/home/kangkang/Projects/MeshMamba/dataset/Manifold40_ringn", mesh_name+".npz")
                 self.data.append((mesh_path, npz_name, mesh_name, label))
 
         self.transform = transforms.Compose([
