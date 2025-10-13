@@ -10,9 +10,9 @@ from trimesh.graph import face_adjacency
 
 
 """
-Reprocess one obj file to make sure it has max_faces faces.
-If it has more than max_faces faces, randomly sample max_faces faces.
-If it has less than max_faces faces, repeat faces until reach max_faces.
+    Reprocess one obj file to make sure it has max_faces faces.
+    If it has more than max_faces faces, randomly sample max_faces faces.
+    If it has less than max_faces faces, repeat faces until reach max_faces.
 """
 def reprocess_obj(obj_path, save_dir, max_faces=500, device='cpu'):
     print("reprocessing:", obj_path)
